@@ -81,6 +81,11 @@ commandCenter: {
   title: "National Command Center",
   subtitle: "India-wide LPG monitoring and intelligence",
 },
+
+blackmarketing: {
+  title: "Anti-Black Marketing Center",
+  subtitle: "Detect suspicious bookings and distributor stock diversion",
+},
 };
     const [consumers, setConsumers] = useState([]);
     const [distributors, setDistributors] = useState([]);
@@ -235,7 +240,13 @@ setAlerts(generatedAlerts);
   label: "National Command Center",
   description: "Map intelligence & monitoring",
   icon: "09",
-},
+    },
+    {
+  id: "blackmarketing",
+  label: "Anti-Black Marketing",
+  description: "Fraud & diversion detection",
+  icon: "10",
+    },
   ];
   const handleLogout = () => {
   localStorage.removeItem("governmentUser");
@@ -1098,6 +1109,32 @@ setAlerts(generatedAlerts);
   </div>
 </div>
       </div>
+    </div>
+  </SectionCard>
+) : null}
+{activeView === "blackmarketing" ? (
+  <SectionCard
+    eyebrow="Fraud Detection"
+    title="Anti-Black Marketing Center"
+    description="Monitor suspicious LPG activity and stock diversion."
+  >
+    <div className="record-grid">
+
+      <article className="record-card">
+        <h3>🚨 High Risk Distributors</h3>
+        <p>0 flagged distributors</p>
+      </article>
+
+      <article className="record-card">
+        <h3>📦 Stock Diversion Alerts</h3>
+        <p>0 active alerts</p>
+      </article>
+
+      <article className="record-card">
+        <h3>⚠ Suspicious Booking Patterns</h3>
+        <p>0 suspicious consumers</p>
+      </article>
+
     </div>
   </SectionCard>
 ) : null}
