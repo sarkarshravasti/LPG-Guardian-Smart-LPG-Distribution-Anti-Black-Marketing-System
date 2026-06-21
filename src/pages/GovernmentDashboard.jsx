@@ -16,6 +16,14 @@ function GovernmentDashboard() {
     const [rejectedRequests, setRejectedRequests] = useState(0);
     const [activeView, setActiveView] = useState("overview");
     const [searchTerm, setSearchTerm] = useState("");
+    const [mapMode, setMapMode] = useState("standard");
+    const [mapLayers, setMapLayers] = useState({
+      consumers: true,
+      distributors: true,
+      complaints: true,
+      lowStock: true,
+      heatmap: false,
+    });
     const cityCoordinates = {
   delhi: [28.6139, 77.2090],
   mumbai: [19.0760, 72.8777],
@@ -35,14 +43,22 @@ function handleMapSearch(e) {
     return;
   }
 
-  if (window.lpgMap) {
-    window.lpgMap.flyTo(location, 11, {
+  if (mapInstance) {
+    mapInstance.flyTo(location, 11, {
       animate: true,
       duration: 2,
     });
   }
 }
+
+function toggleMapLayer(layer) {
+  setMapLayers((current) => ({
+    ...current,
+    [layer]: !current[layer],
+  }));
+}
     const [showNotifications, setShowNotifications] = useState(false);
+    const [mapInstance, setMapInstance] = useState(null);
     const pageConfig = {
   overview: {
     title: "National LPG Control Center",
@@ -72,6 +88,10 @@ function handleMapSearch(e) {
   title: "Reports & Analytics",
   subtitle: "National LPG performance and operational insights",
 },
+traceability: {
+  title: "Traceability Engine",
+  subtitle: "Cylinder and truck audit workflow",
+},
 alerts: {
   title: "Alerts Center",
   subtitle: "Monitor critical system warnings and operational risks",
@@ -94,9 +114,172 @@ blackmarketing: {
     const [stockUpdates, setStockUpdates] = useState([]);
     const [distributorStock, setDistributorStock] = useState([]);
     const [alerts, setAlerts] = useState([]);
+    const [traceabilityData] = useState({
+      summary: {
+        registeredCylinders: 5200,
+        activeTrucks: 4,
+        completedDeliveries: 318,
+        flaggedTransfers: 12,
+      },
+      steps: [
+        {
+          title: "Cylinder Registration",
+          description:
+            "Unique QR assigned and linked to cloud inventory.",
+          status: "Complete",
+          timestamp: "2026-06-21 08:16",
+        },
+        {
+          title: "Filling Plant",
+          description:
+            "Cylinder scanned at plant and filling record created.",
+          status: "Complete",
+          timestamp: "2026-06-21 09:05",
+        },
+        {
+          title: "Warehouse Transfer",
+          description:
+            "Cylinder moved into warehouse and status updated.",
+          status: "Complete",
+          timestamp: "2026-06-21 10:24",
+        },
+        {
+          title: "Truck Loading",
+          description:
+            "Cylinders assigned to trucks with GPS trackers.",
+          status: "Live",
+          timestamp: "2026-06-21 11:30",
+        },
+        {
+          title: "Live Tracking",
+          description:
+            "Truck location monitored in real time with cylinder load.",
+          status: "Active",
+          timestamp: "2026-06-21 12:04",
+        },
+        {
+          title: "Customer Delivery",
+          description:
+            "Delivery agent scans QR and records confirmation/OTP.",
+          status: "Pending",
+          timestamp: "2026-06-21 12:42",
+        },
+      ],
+      trucks: [
+        {
+          id: "TRK-07",
+          route: "Mumbai → Pune",
+          cylinders: ["LPG101", "LPG102", "LPG103"],
+          status: "On Route",
+          deviation: "No",
+          coordinates: [18.5204, 73.8567],
+        },
+        {
+          id: "TRK-11",
+          route: "Delhi → Agra",
+          cylinders: ["LPG201", "LPG202"],
+          status: "Paused",
+          deviation: "Low",
+          coordinates: [28.6260, 77.2410],
+        },
+        {
+          id: "TRK-19",
+          route: "Chennai → Bengaluru",
+          cylinders: ["LPG301", "LPG302", "LPG303"],
+          status: "Delayed",
+          deviation: "High",
+          coordinates: [12.9716, 77.5946],
+        },
+      ],
+      deliveries: [
+        {
+          cylinderId: "101",
+          customer: "U-8821",
+          status: "Delivered",
+          confirmation: "OTP verified",
+        },
+        {
+          cylinderId: "102",
+          customer: "U-9102",
+          status: "Blocked hoarder",
+          confirmation: "Investigating",
+        },
+        {
+          cylinderId: "103",
+          customer: "U-1120",
+          status: "Pending",
+          confirmation: "Awaiting OTP",
+        },
+      ],
+    });
+
+    const [selectedTruck, setSelectedTruck] = useState(null);
+
     useEffect(() => {
-  fetchCounts();
-}, []);
+      if (!selectedTruck && traceabilityData.trucks?.length) {
+        setSelectedTruck(traceabilityData.trucks[0]);
+      }
+    }, [selectedTruck, traceabilityData.trucks]);
+
+    useEffect(() => {
+      if (!mapInstance || !selectedTruck?.coordinates) return;
+      mapInstance.flyTo(selectedTruck.coordinates, 7, {
+        animate: true,
+        duration: 1,
+      });
+    }, [mapInstance, selectedTruck]);
+
+    const sampleConsumers = [
+      { id: 1, consumer_name: "Raj Kumar", consumer_number: "LPG001001", state: "Maharashtra", district: "Mumbai" },
+      { id: 2, consumer_name: "Priya Singh", consumer_number: "LPG001002", state: "Delhi", district: "South Delhi" },
+      { id: 3, consumer_name: "Amit Patel", consumer_number: "LPG001003", state: "Gujarat", district: "Ahmedabad" },
+      { id: 4, consumer_name: "Neha Verma", consumer_number: "LPG001004", state: "West Bengal", district: "Kolkata" },
+      { id: 5, consumer_name: "Suresh Nair", consumer_number: "LPG001005", state: "Kerala", district: "Thiruvananthapuram" },
+    ];
+
+    const sampleDistributors = [
+      { id: 1, name: "Mumbai LPG Distribution", state: "Maharashtra", district: "Mumbai", stock: 520 },
+      { id: 2, name: "Delhi LPG Supply Co", state: "Delhi", district: "South Delhi", stock: 410 },
+      { id: 3, name: "Gujarat Gas Agency", state: "Gujarat", district: "Ahmedabad", stock: 360 },
+      { id: 4, name: "Kolkata Cylinder Works", state: "West Bengal", district: "Kolkata", stock: 240 },
+      { id: 5, name: "Kerala Energy Hub", state: "Kerala", district: "Thiruvananthapuram", stock: 300 },
+    ];
+
+    const sampleRequests = [
+      { id: 101, consumer_name: "Raj Kumar", state: "Maharashtra", district: "Mumbai", distributor_id: 1, pincode: "400001", status: "Pending" },
+      { id: 102, consumer_name: "Priya Singh", state: "Delhi", district: "South Delhi", distributor_id: 2, pincode: "110016", status: "Approved" },
+      { id: 103, consumer_name: "Amit Patel", state: "Gujarat", district: "Ahmedabad", distributor_id: 3, pincode: "380001", status: "Shipped" },
+      { id: 104, consumer_name: "Neha Verma", state: "West Bengal", district: "Kolkata", distributor_id: 4, pincode: "700001", status: "Completed" },
+      { id: 105, consumer_name: "Suresh Nair", state: "Kerala", district: "Thiruvananthapuram", distributor_id: 5, pincode: "695001", status: "Rejected" },
+      { id: 106, consumer_name: "Raj Kumar", state: "Maharashtra", district: "Pune", distributor_id: 1, pincode: "411001", status: "Pending" },
+      { id: 107, consumer_name: "Priya Singh", state: "Delhi", district: "North Delhi", distributor_id: 2, pincode: "110007", status: "Shipped" },
+    ];
+
+    const sampleComplaints = [
+      { id: 201, consumer_name: "Raj Kumar", subject: "Delayed refill", status: "Open", district: "Mumbai", state: "Maharashtra", complaint: "Cylinder was delivered late and the customer was not notified." },
+      { id: 202, consumer_name: "Priya Singh", subject: "Distributor mismatch", status: "Open", district: "South Delhi", state: "Delhi", complaint: "Received wrong distributor details in the confirmation." },
+      { id: 203, consumer_name: "Amit Patel", subject: "Damaged cylinder", status: "In Review", district: "Ahmedabad", state: "Gujarat", complaint: "The cylinder valve was bent on arrival." },
+      { id: 204, consumer_name: "Neha Verma", subject: "Missing OTP", status: "Resolved", district: "Kolkata", state: "West Bengal", complaint: "Delivery confirmation OTP failed three times." },
+    ];
+
+    const sampleStockUpdates = [
+      { id: 301, distributor_name: "Mumbai LPG Distribution", district: "Mumbai", quantity: 180, action: "Received" },
+      { id: 302, distributor_name: "Delhi LPG Supply Co", district: "South Delhi", quantity: 120, action: "Delivered" },
+      { id: 303, distributor_name: "Kolkata Cylinder Works", district: "Kolkata", quantity: 90, action: "Removed" },
+      { id: 304, distributor_name: "Kerala Energy Hub", district: "Thiruvananthapuram", quantity: 70, action: "Removed" },
+    ];
+
+    const sampleDistributorStock = [
+      { id: 401, distributor_name: "Mumbai LPG Distribution", current_stock: 500, district: "Mumbai" },
+      { id: 402, distributor_name: "Delhi LPG Supply Co", current_stock: 300, district: "South Delhi" },
+      { id: 403, distributor_name: "Gujarat Gas Agency", current_stock: 400, district: "Ahmedabad" },
+      { id: 404, distributor_name: "Kolkata Cylinder Works", current_stock: 250, district: "Kolkata" },
+      { id: 405, distributor_name: "Kerala Energy Hub", current_stock: 320, district: "Thiruvananthapuram" },
+    ];
+
+    useEffect(() => {
+      fetchCounts();
+    }, []);
 
 async function fetchCounts() {
   const [
@@ -115,46 +298,47 @@ async function fetchCounts() {
   supabase.from("distributor_stock").select("*"),
 ]);
 
-  setConsumerCount(consumersResponse.data?.length || 0);
-  setDistributorCount(distributorsResponse.data?.length || 0);
-  setRequestCount(requestsResponse.data?.length || 0);
-  setComplaintCount(complaintsResponse.data?.length || 0);
-  setConsumers(consumersResponse.data || []);
-  setDistributors(distributorsResponse.data || []);
-  setRequests(requestsResponse.data || []);
-  setComplaints(complaintsResponse.data || []);
-  setStockUpdates(stockUpdatesResponse.data || []);
-  setDistributorStock(distributorStockResponse.data || []);
-  setPendingRequests(
-  requestsResponse.data?.filter(
-    (request) => request.status === "Pending"
-  ).length || 0
-);
+  const consumersData =
+    consumersResponse.error || !consumersResponse.data?.length
+      ? sampleConsumers
+      : consumersResponse.data;
+  const distributorsData =
+    distributorsResponse.error || !distributorsResponse.data?.length
+      ? sampleDistributors
+      : distributorsResponse.data;
+  const requestsData =
+    requestsResponse.error || !requestsResponse.data?.length
+      ? sampleRequests
+      : requestsResponse.data;
+  const complaintsData =
+    complaintsResponse.error || !complaintsResponse.data?.length
+      ? sampleComplaints
+      : complaintsResponse.data;
+  const stockUpdatesData =
+    stockUpdatesResponse.error || !stockUpdatesResponse.data?.length
+      ? sampleStockUpdates
+      : stockUpdatesResponse.data;
+  const distributorStockData =
+    distributorStockResponse.error || !distributorStockResponse.data?.length
+      ? sampleDistributorStock
+      : distributorStockResponse.data;
 
-setApprovedRequests(
-  requestsResponse.data?.filter(
-    (request) => request.status === "Approved"
-  ).length || 0
-);
-
-setShippedRequests(
-  requestsResponse.data?.filter(
-    (request) => request.status === "Shipped"
-  ).length || 0
-);
-
-setRejectedRequests(
-  requestsResponse.data?.filter(
-    (request) => request.status === "Rejected"
-  ).length || 0
-);
-const pendingCount =
-  requestsResponse.data?.filter(
-    (request) => request.status === "Pending"
-  ).length || 0;
-
-const complaintCountNow =
-  complaintsResponse.data?.length || 0;
+  setConsumerCount(consumersData.length);
+  setDistributorCount(distributorsData.length);
+  setRequestCount(requestsData.length);
+  setComplaintCount(complaintsData.length);
+  setConsumers(consumersData);
+  setDistributors(distributorsData);
+  setRequests(requestsData);
+  setComplaints(complaintsData);
+  setStockUpdates(stockUpdatesData);
+  setDistributorStock(distributorStockData);
+  setPendingRequests(requestsData.filter((request) => request.status === "Pending").length);
+  setApprovedRequests(requestsData.filter((request) => request.status === "Approved").length);
+  setShippedRequests(requestsData.filter((request) => request.status === "Shipped").length);
+  setRejectedRequests(requestsData.filter((request) => request.status === "Rejected").length);
+  const pendingCount = requestsData.filter((request) => request.status === "Pending").length;
+  const complaintCountNow = complaintsData.length;
 
 const generatedAlerts = [];
 
@@ -172,7 +356,7 @@ if (complaintCountNow > 3) {
   });
 }
 
-stockUpdatesResponse.data?.forEach((update) => {
+stockUpdatesData.forEach((update) => {
   if (
     update.action?.toLowerCase() === "removed" &&
     update.quantity >= 4
@@ -242,10 +426,16 @@ setAlerts(generatedAlerts);
   icon: "09",
     },
     {
+      id: "traceability",
+      label: "Traceability",
+      description: "Cylinder and truck audit",
+      icon: "10",
+    },
+    {
   id: "blackmarketing",
   label: "Anti-Black Marketing",
   description: "Fraud & diversion detection",
-  icon: "10",
+  icon: "11",
     },
   ];
   const handleLogout = () => {
@@ -342,91 +532,162 @@ setAlerts(generatedAlerts);
   </div>
 )}
         {activeView === "overview" ? (
-     <div className="metric-grid">
-        <SectionCard
-  eyebrow="Active Alerts"
-  title={`🚨 ${alerts.length} Active Alerts`}
-  description="Critical notifications requiring attention."
->
-  {alerts.length === 0 ? (
-    <p>All systems operating normally.</p>
-  ) : (
-    alerts.slice(0, 5).map((alert, index) => (
-      <div
-        key={index}
-        style={{
-          padding: "12px",
-          marginBottom: "10px",
-          borderRadius: "10px",
-          background: "rgba(255,255,255,0.05)",
-          borderLeft:
-            alert.severity === "Critical"
-              ? "4px solid #dc2626"
-              : "4px solid #f59e0b",
-        }}
-      >
-        <strong>{alert.severity}</strong>
-        <div>{alert.message}</div>
-      </div>
-    ))
-  )}
-</SectionCard>
-  <MetricCard
-    label="Consumers"
-    value={consumerCount}
-    description="Registered consumers"
-    tone="blue"
-  />
+          <>
+            <div className="government-hero-panel">
+              <div className="government-hero-copy">
+                <span className="eyebrow">Incoming Intelligence Feed</span>
+                <h2>Anti-Black Market Intelligence Center</h2>
+                <p className="government-hero-text">
+                  Monitor suspicious cylinder movement and real-time alerts inside the national command portal.
+                </p>
 
-  <MetricCard
-    label="Distributors"
-    value={distributorCount}
-    description="Registered distributors"
-    tone="green"
-  />
+                <div className="government-hero-stats">
+                  <div>
+                    <strong>1,429</strong>
+                    <span>Total Flags</span>
+                  </div>
+                  <div>
+                    <strong>8,102</strong>
+                    <span>Unaccounted Cylinders</span>
+                  </div>
+                  <div>
+                    <strong>312</strong>
+                    <span>Compliance Violations</span>
+                  </div>
+                </div>
+              </div>
 
-  <MetricCard
-    label="Requests"
-    value={requestCount}
-    description="Total LPG requests"
-    tone="orange"
-  />
+              <div className="government-hero-visual">
+                <div className="government-hero-visual-label">LIVE REPORT</div>
+                <div className="government-hero-visual-card">
+                  <p>Black Market Sale Detected</p>
+                  <strong>#REP-8821</strong>
+                  <span>Priority Alpha — Immediate response recommended</span>
+                </div>
+              </div>
+            </div>
 
-  <MetricCard
-    label="Complaints"
-    value={complaintCount}
-    description="Citizen complaints"
-    tone="red"
-  />
-  <MetricCard
-  label="Pending Requests"
-  value={pendingRequests}
-  description="Awaiting approval"
-  tone="orange"
-/>
+            <div className="metric-grid">
+              <SectionCard
+                eyebrow="Active Alerts"
+                title={`🚨 ${alerts.length} Active Alerts`}
+                description="Critical notifications requiring attention."
+              >
+                {alerts.length === 0 ? (
+                  <p>All systems operating normally.</p>
+                ) : (
+                  alerts.slice(0, 5).map((alert, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        padding: "12px",
+                        marginBottom: "10px",
+                        borderRadius: "10px",
+                        background: "rgba(255,255,255,0.05)",
+                        borderLeft:
+                          alert.severity === "Critical"
+                            ? "4px solid #dc2626"
+                            : "4px solid #f59e0b",
+                      }}
+                    >
+                      <strong>{alert.severity}</strong>
+                      <div>{alert.message}</div>
+                    </div>
+                  ))
+                )}
+              </SectionCard>
 
-<MetricCard
-  label="Approved Requests"
-  value={approvedRequests}
-  description="Approved by distributors"
-  tone="green"
-/>
+              <MetricCard
+                label="Consumers"
+                value={consumerCount}
+                description="Registered consumers"
+                tone="blue"
+              />
 
-<MetricCard
-  label="Shipped Orders"
-  value={shippedRequests}
-  description="Currently in transit"
-  tone="blue"
-/>
+              <MetricCard
+                label="Distributors"
+                value={distributorCount}
+                description="Registered distributors"
+                tone="green"
+              />
 
-<MetricCard
-  label="Rejected Requests"
-  value={rejectedRequests}
-  description="Rejected orders"
-  tone="red"
-/>
-</div>
-) : null}
+              <MetricCard
+                label="Requests"
+                value={requestCount}
+                description="Total LPG requests"
+                tone="orange"
+              />
+
+              <MetricCard
+                label="Complaints"
+                value={complaintCount}
+                description="Citizen complaints"
+                tone="red"
+              />
+
+              <MetricCard
+                label="Pending Requests"
+                value={pendingRequests}
+                description="Awaiting approval"
+                tone="orange"
+              />
+
+              <MetricCard
+                label="Approved Requests"
+                value={approvedRequests}
+                description="Approved by distributors"
+                tone="green"
+              />
+
+              <MetricCard
+                label="Shipped Orders"
+                value={shippedRequests}
+                description="Currently in transit"
+                tone="blue"
+              />
+
+              <MetricCard
+                label="Rejected Requests"
+                value={rejectedRequests}
+                description="Rejected orders"
+                tone="red"
+              />
+            </div>
+
+            <SectionCard
+              eyebrow="Traceability Snapshot"
+              title="Cylinder registration to customer delivery"
+              description="See the live workflow behind every cylinder, from QR registration through GPS-backed truck transport."
+            >
+              <div className="traceability-overview-grid">
+                <article className="traceability-overview-card">
+                  <h3>01 Cylinder Registration</h3>
+                  <p>Unique QR assigned to every cylinder and linked to the cloud database.</p>
+                </article>
+
+                <article className="traceability-overview-card">
+                  <h3>02 Filling Plant</h3>
+                  <p>QR scan records cylinder ID, plant, and timestamp automatically.</p>
+                </article>
+
+                <article className="traceability-overview-card">
+                  <h3>03 Warehouse Transfer</h3>
+                  <p>Cylinder arrival is verified and status is updated in the supply chain.</p>
+                </article>
+
+                <article className="traceability-overview-card">
+                  <h3>04 Truck Loading</h3>
+                  <p>Cylinders are assigned to GPS-tracked trucks before outbound dispatch.</p>
+                </article>
+              </div>
+
+              <div className="traceability-overview-cta">
+                <button className="primary-button" onClick={() => setActiveView("traceability")}>Open Traceability Engine</button>
+                <p>Live tracking, scanned confirmations, and delivery audit are available in Traceability.</p>
+              </div>
+            </SectionCard>
+          </>
+        ) : null}
 {activeView === "consumers" ? (
   <SectionCard
     eyebrow="Consumer Explorer"
@@ -647,11 +908,154 @@ setAlerts(generatedAlerts);
 
             <p className="field-full">
               <span>Complaint</span>
-              {complaint.complaint || "-"}
+              {complaint.complaint || complaint.subject || complaint.details || "-"}
             </p>
           </div>
         </article>
       ))}
+    </div>
+  </SectionCard>
+) : null}
+{activeView === "traceability" ? (
+  <SectionCard
+    eyebrow="Traceability Engine"
+    title="Cylinder & Truck Audit Workflow"
+    description="Monitor every cylinder from registration through delivery with live truck tracking."
+  >
+    <div className="traceability-stat-grid">
+      <article className="traceability-stat-card">
+        <p className="eyebrow">Registered Cylinders</p>
+        <h2>{traceabilityData.summary.registeredCylinders}</h2>
+        <p>Every cylinder is tagged with a unique QR code.</p>
+      </article>
+
+      <article className="traceability-stat-card">
+        <p className="eyebrow">Active Trucks</p>
+        <h2>{traceabilityData.summary.activeTrucks}</h2>
+        <p>Delivery trucks currently under live GPS monitoring.</p>
+      </article>
+
+      <article className="traceability-stat-card">
+        <p className="eyebrow">Completed Deliveries</p>
+        <h2>{traceabilityData.summary.completedDeliveries}</h2>
+        <p>Confirmed deliveries with OTP/agent scanning.</p>
+      </article>
+
+      <article className="traceability-stat-card">
+        <p className="eyebrow">Flagged Transfers</p>
+        <h2>{traceabilityData.summary.flaggedTransfers}</h2>
+        <p>Suspicious inventory movements under review.</p>
+      </article>
+    </div>
+
+    <div className="traceability-truck-selector" style={{ margin: "20px 0" }}>
+      {traceabilityData.trucks.map((truck) => (
+        <button
+          key={truck.id}
+          type="button"
+          className="secondary-button"
+          style={selectedTruck?.id === truck.id ? { borderColor: "#10b981", color: "#10b981" } : {}}
+          onClick={() => setSelectedTruck(truck)}
+        >
+          {truck.id}
+        </button>
+      ))}
+      {selectedTruck ? (
+        <div style={{ marginTop: "12px", color: "#cbd5e1" }}>
+          <strong>Selected truck:</strong> {selectedTruck.id} | Route: {selectedTruck.route} | Status: {selectedTruck.status}
+        </div>
+      ) : null}
+    </div>
+
+    <div className="traceability-flow-grid">
+      <article className="traceability-flow-panel">
+        {traceabilityData.steps.map((step) => (
+          <div key={step.title} className="traceability-step">
+            <div className="traceability-step-badge">
+              {step.title.charAt(0)}
+            </div>
+            <div>
+              <h4>{step.title}</h4>
+              <p>{step.description}</p>
+              <small>{step.timestamp} • {step.status}</small>
+            </div>
+          </div>
+        ))}
+      </article>
+
+      <article className="traceability-map-frame">
+        <div className="section-card-header">
+          <div>
+            <p className="section-eyebrow">Live Tracking</p>
+            <h3 className="section-title">Truck Fleet Movement</h3>
+          </div>
+        </div>
+        <div className="traceability-map-inner">
+          <IndiaMap onMapReady={setMapInstance} />
+        </div>
+        <div className="traceability-map-footer">
+          <p>GPS-tracked trucks show current route and cylinder assignment.</p>
+        </div>
+      </article>
+    </div>
+
+    <div className="record-grid">
+      <article className="record-card">
+        <div className="section-card-header">
+          <div>
+            <p className="eyebrow">Truck Assignment Ledger</p>
+            <h3 className="section-title">Cylinder Load Audit</h3>
+          </div>
+        </div>
+        <div className="traceability-table traceability-table-header">
+          <div><span>Truck ID</span></div>
+          <div><span>Route</span></div>
+          <div><span>Cylinders</span></div>
+          <div><span>Status</span></div>
+          <div><span>Deviation</span></div>
+        </div>
+        {traceabilityData.trucks.map((truck) => (
+          <div
+            key={truck.id}
+            className="traceability-table"
+            style={{
+              borderTop: "1px solid rgba(255,255,255,0.08)",
+              paddingTop: "12px",
+              background: selectedTruck?.id === truck.id ? "rgba(16,185,129,0.08)" : "transparent",
+            }}
+            onClick={() => setSelectedTruck(truck)}
+          >
+            <p>{truck.id}</p>
+            <p>{truck.route}</p>
+            <p>{truck.cylinders.join(", ")}</p>
+            <p>{truck.status}</p>
+            <p>{truck.deviation}</p>
+          </div>
+        ))}
+      </article>
+
+      <article className="record-card">
+        <div className="section-card-header">
+          <div>
+            <p className="eyebrow">Delivery Confirmation</p>
+            <h3 className="section-title">Customer Delivery Status</h3>
+          </div>
+        </div>
+        <div className="traceability-table traceability-table-header traceability-table-compact">
+          <div><span>Cylinder</span></div>
+          <div><span>Customer</span></div>
+          <div><span>Status</span></div>
+          <div><span>Confirmation</span></div>
+        </div>
+        {traceabilityData.deliveries.map((delivery) => (
+          <div key={delivery.cylinderId} className="traceability-table traceability-table-compact" style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "12px" }}>
+            <p>{delivery.cylinderId}</p>
+            <p>{delivery.customer}</p>
+            <p>{delivery.status}</p>
+            <p>{delivery.confirmation}</p>
+          </div>
+        ))}
+      </article>
     </div>
   </SectionCard>
 ) : null}
@@ -822,26 +1226,10 @@ setAlerts(generatedAlerts);
     title="India LPG Monitoring Grid"
     description="Real-time distributor and consumer intelligence."
   >
-    <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "280px minmax(700px,1fr) 320px",
-    gap: "20px",
-    height: "calc(100vh - 260px)",
-    alignItems: "stretch",
-  }}
->
-      {/* LEFT PANEL */}
-      <div
-  style={{
-    background: "#0f172a",
-    borderRadius: "16px",
-    padding: "20px",
-    border: "1px solid rgba(255,255,255,0.08)",
-  }}
->
-  <div
-    style={{
+    <div className="dashboard-command-grid">
+      <div className="dashboard-map-sidebar">
+        <div
+          style={{
       color: "#64748b",
       fontSize: "11px",
       letterSpacing: "2px",
@@ -851,50 +1239,70 @@ setAlerts(generatedAlerts);
     MAP CONTROLS
   </div>
 
-  <details open>
-    <summary
-      style={{
-        cursor: "pointer",
-        marginBottom: "12px",
-        color: "#00E08A",
-        fontWeight: "600",
-      }}
-    >
-      🗂 Map Layers
-    </summary>
+  <div className="map-control-group">
+    <div className="map-control-heading">🗂 Map Layers</div>
+    <label>
+      <input
+        type="checkbox"
+        checked={mapLayers.consumers}
+        onChange={() => toggleMapLayer("consumers")}
+      />
+      Consumers
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        checked={mapLayers.distributors}
+        onChange={() => toggleMapLayer("distributors")}
+      />
+      Distributors
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        checked={mapLayers.complaints}
+        onChange={() => toggleMapLayer("complaints")}
+      />
+      Complaint Hotspots
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        checked={mapLayers.lowStock}
+        onChange={() => toggleMapLayer("lowStock")}
+      />
+      Low Stock Zones
+    </label>
+    <label>
+      <input
+        type="checkbox"
+        checked={mapLayers.heatmap}
+        onChange={() => toggleMapLayer("heatmap")}
+      />
+      Demand Heatmap
+    </label>
+  </div>
 
-    <div style={{ lineHeight: "2" }}>
-      <div>☑ Consumers</div>
-      <div>☑ Distributors</div>
-      <div>☑ Complaint Hotspots</div>
-      <div>☑ Low Stock Zones</div>
-      <div>☐ Demand Heatmap</div>
-    </div>
-  </details>
-
-  <details style={{ marginTop: "20px" }}>
-    <summary
-      style={{
-        cursor: "pointer",
-        color: "#00E08A",
-        fontWeight: "600",
-      }}
-    >
-      🗺 Map Mode
-    </summary>
-
-    <div
-      style={{
-        marginTop: "10px",
-        lineHeight: "2",
-      }}
-    >
-      <div>Standard</div>
-      <div>Satellite</div>
-      <div>Terrain</div>
-      <div>Heatmap</div>
-    </div>
-  </details>
+  <div className="map-control-group" style={{ marginTop: "20px" }}>
+    <div className="map-control-heading">🗺 Map Mode</div>
+    {[
+      { id: "standard", label: "Standard" },
+      { id: "satellite", label: "Satellite" },
+      { id: "terrain", label: "Terrain" },
+      { id: "heatmap", label: "Heatmap" },
+    ].map((mode) => (
+      <label key={mode.id}>
+        <input
+          type="radio"
+          name="mapMode"
+          value={mode.id}
+          checked={mapMode === mode.id}
+          onChange={() => setMapMode(mode.id)}
+        />
+        {mode.label}
+      </label>
+    ))}
+  </div>
 
   <div
     style={{
@@ -951,17 +1359,7 @@ setAlerts(generatedAlerts);
 </div>
 
       {/* MAP AREA */}
-      <div
-  style={{
-    position: "relative",
-    background: "#0f172a",
-    borderRadius: "16px",
-    overflow: "hidden",
-    height: "750px",
-    border: "1px solid rgba(255,255,255,0.08)",
-    boxShadow: "0 0 40px rgba(0,224,138,0.08)",
-  }}
->
+      <div className="dashboard-map-area">
         <input
   placeholder="Search district, state or distributor..."
   value={searchTerm}
@@ -984,21 +1382,16 @@ setAlerts(generatedAlerts);
   }}
 />
 
-       <IndiaMap />
-       <div
-  style={{
-    position: "absolute",
-    bottom: "20px",
-    left: "20px",
-    background: "rgba(15,23,42,0.92)",
-    border: "1px solid rgba(0,224,138,0.15)",
-    borderRadius: "14px",
-    padding: "16px",
-    zIndex: 1000,
-    minWidth: "240px",
-    backdropFilter: "blur(10px)",
-  }}
->
+       <IndiaMap
+         onMapReady={setMapInstance}
+         showConsumers={mapLayers.consumers}
+         showDistributors={mapLayers.distributors}
+         showComplaints={mapLayers.complaints}
+         showLowStock={mapLayers.lowStock}
+         showHeatmap={mapLayers.heatmap}
+         mapMode={mapMode}
+       />
+       <div className="dashboard-map-overlay">
   <div
     style={{
       color: "#00E08A",
@@ -1022,19 +1415,13 @@ setAlerts(generatedAlerts);
       </div>
 
       {/* RIGHT PANEL */}
-      <div
-        style={{
-          background: "#0f172a",
-          borderRadius: "16px",
-          padding: "20px",
-        }}
-      >
+      <div className="dashboard-meta-panel">
         <h3
-  style={{
-    marginBottom: "20px",
-    color: "#00E08A",
-  }}
->
+          style={{
+            marginBottom: "20px",
+            color: "#00E08A",
+          }}
+        >
   Analytics
 </h3>
 

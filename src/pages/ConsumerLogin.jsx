@@ -1,6 +1,31 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
+const demoConsumers = [
+  {
+    id: 1,
+    consumer_name: "Rahul Sharma",
+    consumer_number: "C-1001",
+    password: "Pass@1001",
+    phone: "9876543210",
+    email: "rahul.sharma@example.com",
+    address: "Flat 12B, Sector 5",
+    city: "Delhi",
+    pincode: "110016",
+  },
+  {
+    id: 2,
+    consumer_name: "Pooja Mehta",
+    consumer_number: "C-1002",
+    password: "Welcome2026",
+    phone: "9123456780",
+    email: "pooja.mehta@example.com",
+    address: "26 MG Road",
+    city: "Mumbai",
+    pincode: "400001",
+  },
+];
+
 function ConsumerLogin({ setPage }) {
   const [consumerNumber, setConsumerNumber] = useState("");
   const [password, setPassword] = useState("");
@@ -15,29 +40,52 @@ function ConsumerLogin({ setPage }) {
       .eq("password", password)
       .single();
 
-    if (error || !data) {
+    const fallback = demoConsumers.find(
+      (item) => item.consumer_number === consumerNumber && item.password === password
+    );
+
+    if ((error || !data) && !fallback) {
       alert("Invalid Consumer Number or Password");
       console.log(error);
       return;
     }
 
+    const user = data || fallback;
+
     localStorage.setItem(
       "consumerId",
-      data.id
+      user.id
     );
 
     localStorage.setItem(
       "consumerName",
-      data.consumer_name
+      user.consumer_name
     );
 
     localStorage.setItem(
       "consumerNumber",
-      data.consumer_number
+      user.consumer_number
+    );
+
+    localStorage.setItem(
+      "consumerLookupName",
+      user.consumer_name
+    );
+
+    localStorage.setItem(
+      "consumerProfile",
+      JSON.stringify({
+        name: user.consumer_name,
+        phone: user.phone || "",
+        email: user.email || "",
+        address: user.address || "",
+        city: user.city || "",
+        pincode: user.pincode || "",
+      })
     );
 
     alert(
-      `Welcome ${data.consumer_name}!`
+      `Welcome ${user.consumer_name}!`
     );
     window.location.reload();
 

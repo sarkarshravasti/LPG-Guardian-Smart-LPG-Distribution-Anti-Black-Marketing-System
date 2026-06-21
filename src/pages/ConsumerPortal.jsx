@@ -14,6 +14,90 @@ const initialProfile = {
   pincode: "",
 };
 
+const sampleBookingHistory = [
+  {
+    id: 101,
+    consumer_name: "Demo Consumer",
+    state: "Delhi",
+    district: "South Delhi",
+    distributor_id: 2,
+    pincode: "110016",
+    status: "Approved",
+  },
+  {
+    id: 102,
+    consumer_name: "Demo Consumer",
+    state: "Delhi",
+    district: "South Delhi",
+    distributor_id: 2,
+    pincode: "110016",
+    status: "Pending",
+  },
+  {
+    id: 103,
+    consumer_name: "Demo Consumer",
+    state: "Delhi",
+    district: "South Delhi",
+    distributor_id: 2,
+    pincode: "110016",
+    status: "Shipped",
+  },
+  {
+    id: 104,
+    consumer_name: "Demo Consumer",
+    state: "Maharashtra",
+    district: "Mumbai",
+    distributor_id: 1,
+    pincode: "400001",
+    status: "Completed",
+  },
+  {
+    id: 105,
+    consumer_name: "Demo Consumer",
+    state: "Karnataka",
+    district: "Bengaluru",
+    distributor_id: 4,
+    pincode: "560001",
+    status: "Rejected",
+  },
+];
+
+const sampleComplaints = [
+  {
+    id: 201,
+    subject: "Late delivery",
+    details: "The cylinder arrival was delayed by two days.",
+    submittedAt: "2026-06-19 09:34",
+    status: "Open",
+  },
+];
+
+const sampleRefundRequests = [
+  {
+    id: 301,
+    bookingRef: "102",
+    amount: "450",
+    reason: "Cylinder was damaged on arrival.",
+    submittedAt: "2026-06-20 11:12",
+    status: "Under Review",
+  },
+  {
+    id: 302,
+    bookingRef: "104",
+    amount: "380",
+    reason: "Delayed delivery caused inconvenience.",
+    submittedAt: "2026-06-20 16:20",
+    status: "Approved",
+  },
+];
+
+const sampleDistributors = [
+  { id: 1, name: "Mumbai LPG Distribution", state: "Maharashtra", district: "Mumbai" },
+  { id: 2, name: "Delhi LPG Supply Co", state: "Delhi", district: "South Delhi" },
+  { id: 3, name: "Gujarat Gas Agency", state: "Gujarat", district: "Ahmedabad" },
+  { id: 4, name: "Bengaluru Cylinder Network", state: "Karnataka", district: "Bengaluru" },
+];
+
 function ConsumerPortal({ onBackToHome }) {
   const [activeView, setActiveView] = useState("booking");
   const [consumerName, setConsumerName] = useState("");
@@ -22,9 +106,9 @@ function ConsumerPortal({ onBackToHome }) {
   const [selectedDistributor, setSelectedDistributor] = useState("");
   const [pincode, setPincode] = useState("");
   const [distributors, setDistributors] = useState([]);
-  const [bookingHistory, setBookingHistory] = useState([]);
-  const [complaints, setComplaints] = useState([]);
-  const [refundRequests, setRefundRequests] = useState([]);
+  const [bookingHistory, setBookingHistory] = useState(sampleBookingHistory);
+  const [complaints, setComplaints] = useState(sampleComplaints);
+  const [refundRequests, setRefundRequests] = useState(sampleRefundRequests);
   const [complaintForm, setComplaintForm] = useState({
     subject: "",
     details: "",
@@ -54,7 +138,9 @@ function ConsumerPortal({ onBackToHome }) {
     fetchDistributors();
 
     const savedProfile = window.localStorage.getItem("consumerProfile");
-    const savedLookupName = window.localStorage.getItem("consumerLookupName");
+    const savedLookupName =
+      window.localStorage.getItem("consumerLookupName") ||
+      window.localStorage.getItem("consumerName");
 
     if (savedProfile) {
       try {
@@ -78,10 +164,11 @@ function ConsumerPortal({ onBackToHome }) {
   async function fetchDistributors() {
     const { data, error } = await supabase.from("distributors").select("*");
 
-    if (error) {
+    if (error || !data?.length) {
       console.log(error);
+      setDistributors(sampleDistributors);
     } else {
-      setDistributors(data || []);
+      setDistributors(data || sampleDistributors);
     }
   }
 
